@@ -52,3 +52,35 @@ module closed_loop_token::simple_token {
             limiter::set_config(policy, cap, config, ctx);
         }
 }
+
+#[test_only]
+module closed_loop_token::simple_token_tests {
+    use sui::tx_context::TxContext;
+    use sui::token::{Self, TokenPolicy, TokenPolicyCap};
+    use sui::token_test_utils::{Self as test, TEST};
+
+    use closed_loop_token::simple_token::set_rules;
+    use closed_loop_token::limiter_rule as limiter;
+
+    const ALICE: address = @0x0;
+
+    #[test]
+    /// Transfer 1 Simple Token to self
+    fun test_limiter_transfer_allowed_pass() {
+        let ctx = &mut test::ctx(ALICE);
+        let (policy, cap) = policy_with_allowlist(ctx);
+
+        let token = test::mint(10_000000, ctx);
+        let request = token::transfer(token, ALICE, ctx);
+
+        limiter::verify(&policy, &mut request, ctx);
+        token::confirm_request(&policy, request, ctx);
+        test::return_policy(policy, cap);
+    }
+
+    fun policy_with_allowlist(ctx: &mut TxContext): (TokenPolicy<TEST>, TokenPolicyCap<TEST>) {
+        let (policy, cap) = test::get_policy(ctx);
+        set_rules(&mut policy, &cap, ctx);
+        (policy, cap)
+    }
+}
