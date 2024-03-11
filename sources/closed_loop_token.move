@@ -78,6 +78,19 @@ module closed_loop_token::simple_token_tests {
         test::return_policy(policy, cap);
     }
 
+    #[test, expected_failure(abort_code = limiter::ELimitExceeded)]
+    fun test_limiter_transfer_to_not_allowed_fail() {
+        let ctx = &mut test::ctx(ALICE);
+        let (policy, _cap) = policy_with_allowlist(ctx);
+
+        let token = test::mint(11_000000, ctx);
+        let request = token::transfer(token, ALICE, ctx);
+
+        limiter::verify(&policy, &mut request, ctx);
+
+        abort 1337
+    }
+
     fun policy_with_allowlist(ctx: &mut TxContext): (TokenPolicy<TEST>, TokenPolicyCap<TEST>) {
         let (policy, cap) = test::get_policy(ctx);
         set_rules(&mut policy, &cap, ctx);
